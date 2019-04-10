@@ -55,10 +55,10 @@ n = 10
 # create a csv file to save the dataframe
 output_file = 'AAPL_' + str(n) + '.csv'
 
-#df_out['Positive Money Flow'].fillna(0, inplace=True)
+df_out['Positive Money Flow'].fillna(0, inplace=True)
 df_out['Positive Money Flow Sum'] = df_out['Positive Money Flow'].rolling(n).sum()
 
-#df_out['Negative Money Flow'].fillna(0, inplace=True)
+df_out['Negative Money Flow'].fillna(0, inplace=True)
 df_out['Negative Money Flow Sum'] = df_out['Negative Money Flow'].rolling(n).sum()
 
 money_ratio = df_out.loc[:,'Positive Money Flow Sum'].values / df_out.loc[:,'Negative Money Flow Sum'].values
@@ -68,8 +68,6 @@ money_index = (100 * money_ratio)/ (1 + money_ratio)
 # add money index as a column
 
 df_out['Money Index'] = money_index
-
-#df_out.fillna('', inplace=True)
 
 df_out.to_csv(output_file)
 
