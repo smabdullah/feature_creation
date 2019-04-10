@@ -2,63 +2,74 @@
 """
 Created on Mon Apr  8 13:55:44 2019
 
-@author: SM
+@author: SM Abdullah
+@email: sma.csedu@gmail.com
+
+This project aims to create some features from a provided dataset and embaded
+the new features into the dataset. For the information regarding what new features
+are created, please check the README file
 """
 
 import pandas as pd
 import numpy as np
 
-df_input = pd.read_csv('AAPL.csv')
+# First read a dataset. This is a historial stock price dataset of Apple Inc.
 
-# dropping adjusted_close column
-df_input.drop(columns=['Date', 'Adj Close'], inplace=True, axis=1)
+df_in = pd.read_csv('dataset\AAPL.csv')
 
-# create a new dataframe
-column_name = ['Open', 'High', 'Low', 'Close', 'Volume', 'Typical Price']
-df_output = pd.DataFrame(data=df_input, columns=column_name)
+# dropping adjusted_close column, as we do not need it
+df_in.drop(columns=['Adj Close'], inplace=True, axis=1)
+
+# create a new dataframe with the existing data and a new column
+column_name = list(df_in.columns)
+column_name.append('Typical Price')
+df_out = pd.DataFrame(data=df_in, columns=column_name)
 
 # calculate the typical price as the mean of high, low and close price
+df_out['Typical Price'] = (df_out.loc[:,'High']+df_out.loc[:,'Low']+df_out.loc[:,'Close'])/3.0
 
-df_output['Typical Price'] = (df_output.loc[:,'High']+df_output.loc[:,'Low']+df_output.loc[:,'Close'])/3.0
+# calculating the money flow, include it in the dataframe
 
-# calculating the money flow
-
-X = df_output.loc[:,'Typical Price'].values;
-v = df_output.loc[:,'Volume'].values
-money_flow = np.zeros(1007)
+X = df_out.loc[:,'Typical Price'].values;
+v = df_out.loc[:,'Volume'].values
+money_flow = np.zeros(len(df_out))
 money_flow[1:] = X[1:]*v[1:] - X[:-1]*v[:-1]
-df_output['Money Flow'] = money_flow
+df_out['Money Flow'] = money_flow
 
 # drop rows where money flow is equal to zero
-df_output.drop(df_output[df_output['Money Flow'] == 0].index, inplace=True)
-
-# put data on the positive and negative money flow
-df_output['Positive Money Flow'] = df_output.loc[df_output['Money Flow'] > 0, 'Money Flow']
-df_output['Negative Money Flow'] = abs(df_output.loc[df_output['Money Flow'] < 0, 'Money Flow'])
-
-# drop money flow column
-df_output.drop(columns='Money Flow', axis=1, inplace=True)
+df_out.drop(df_out[df_out['Money Flow'] == 0].index, inplace=True)
 
 # reset index to zero
-df_output.reset_index(inplace=True)
+df_out.reset_index(inplace=True)
+
+# put data on the positive and negative money flow
+df_out['Positive Money Flow'] = df_out.loc[df_out['Money Flow'] > 0, 'Money Flow']
+df_out['Negative Money Flow'] = abs(df_out.loc[df_out['Money Flow'] < 0, 'Money Flow'])
+
+# drop money flow column
+df_out.drop(columns='Money Flow', axis=1, inplace=True)
 
 # cumulative sum over a sliding window of 10 days
 n = 10
-df_output['Positive Money Flow'].fillna(0, inplace=True)
-df_output['Positive Money Flow Sum'] = df_output['Positive Money Flow'].rolling(n).sum()
 
-df_output['Negative Money Flow'].fillna(0, inplace=True)
-df_output['Negative Money Flow Sum'] = df_output['Negative Money Flow'].rolling(n).sum()
+# create a csv file to save the dataframe
+output_file = 'AAPL_' + str(n) + '.csv'
 
-money_ratio = df_output.loc[:,'Positive Money Flow Sum'].values / df_output.loc[:,'Negative Money Flow Sum'].values
+#df_out['Positive Money Flow'].fillna(0, inplace=True)
+df_out['Positive Money Flow Sum'] = df_out['Positive Money Flow'].rolling(n).sum()
+
+#df_out['Negative Money Flow'].fillna(0, inplace=True)
+df_out['Negative Money Flow Sum'] = df_out['Negative Money Flow'].rolling(n).sum()
+
+money_ratio = df_out.loc[:,'Positive Money Flow Sum'].values / df_out.loc[:,'Negative Money Flow Sum'].values
 
 money_index = (100 * money_ratio)/ (1 + money_ratio)
 
 # add money index as a column
 
-df_output['Money Index'] = money_index
+df_out['Money Index'] = money_index
 
-df_output.fillna('', inplace=True)
+#df_out.fillna('', inplace=True)
 
-df_output.to_csv('output.csv')
+df_out.to_csv(output_file)
 
